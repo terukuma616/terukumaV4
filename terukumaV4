@@ -1,0 +1,149 @@
+local P = game:GetService("Players").LocalPlayer
+local PlayerGui = P:FindFirstChild("PlayerGui") or P:WaitForChild("PlayerGui", 10)
+
+-- 旧バージョン（v3以前）があれば削除
+if PlayerGui:FindFirstChild("TerukumaUltimate") then PlayerGui.TerukumaUltimate:Destroy() end
+
+local d, S, v, j, tgt = nil, game:GetService("RunService"), 0, 50, nil
+local conns = {Inf = nil, Clip = nil, Anti = nil}
+
+local g = Instance.new("ScreenGui", PlayerGui)
+g.ResetOnSpawn, g.Name, g.IgnoreGuiInset = false, "TerukumaUltimate", true
+
+local f = Instance.new("Frame", g)
+f.Size, f.Position = UDim2.new(0, 130, 0, 225), UDim2.new(0.5, -65, 0.5, -112)
+f.BackgroundColor3, f.BackgroundTransparency = Color3.new(0,0,0), .3
+f.Active, f.Draggable = true, true
+Instance.new("UICorner", f).CornerRadius = UDim.new(0, 12)
+
+-- MENUボタン
+local openBtn = Instance.new("TextButton", g)
+openBtn.Size, openBtn.Position = UDim2.new(0, 45, 0, 25), UDim2.new(0, 10, 0, 70)
+openBtn.BackgroundColor3, openBtn.Text = Color3.fromRGB(139, 69, 19), "MENU"
+openBtn.TextColor3, openBtn.TextSize, openBtn.Font = Color3.new(1,1,1), 12, Enum.Font.SourceSansBold
+Instance.new("UICorner", openBtn)
+openBtn.MouseButton1Click:Connect(function() f.Visible = not f.Visible end)
+
+-- タイトル（v4へアップデート）
+local l = Instance.new("TextLabel", f)
+l.Size, l.Position, l.BackgroundTransparency = UDim2.new(1,0,0,30), UDim2.new(0,0,0,0), 1
+l.Text, l.TextSize, l.Font = "てるクマ v4", 20, Enum.Font.SourceSansBold
+l.TextColor3 = Color3.fromRGB(255, 140, 0); l.TextStrokeTransparency = 0.2
+
+-- レインボータイトル & 移動・ジャンプ処理
+S.Heartbeat:Connect(function(dt)
+    l.TextColor3 = Color3.fromHSV(tick()%.8/.8,0.8,1)
+    pcall(function()
+        local c = P.Character
+        local hum = c and c:FindFirstChild("Humanoid")
+        if hum then
+            if hum.MoveDirection.Magnitude > 0 then c.HumanoidRootPart.CFrame += (hum.MoveDirection * v * dt) end
+            hum.UseJumpPower = true; hum.JumpPower = j
+        end
+    end)
+end)
+
+local function b(t, y, w, x, c, a, p)
+    local btn = Instance.new("TextButton", p or f)
+    btn.Size, btn.Position = UDim2.new(0, w, 0, 22), UDim2.new(0, x, 0, y)
+    btn.Text, btn.BackgroundColor3, btn.TextColor3 = t, c, Color3.new(1,1,1)
+    btn.Font, btn.TextSize = Enum.Font.SourceSansBold, 12
+    Instance.new("UICorner", btn)
+    btn.MouseButton1Click:Connect(a)
+    return btn
+end
+
+-- プレイヤー選択用スクロールフレーム（最新デザイン）
+local sc = Instance.new("ScrollingFrame", f)
+sc.Size, sc.Position, sc.Visible = UDim2.new(0,130,0,160), UDim2.new(1,10,0,0), false
+sc.BackgroundColor3, sc.ScrollBarThickness = Color3.fromRGB(30,30,30), 4
+Instance.new("UICorner", sc)
+
+local top = 35
+b("保存", top, 55, 8, Color3.fromRGB(139,69,19), function() d = P.Character.HumanoidRootPart.CFrame end)
+b("移動", top, 55, 67, Color3.fromRGB(205,133,63), function() if d then P.Character.HumanoidRootPart.CFrame = d end end)
+
+local tpP = b("人へTP", top+28, 84, 8, Color3.fromRGB(160,82,45), function() 
+    if tgt and tgt.Character and tgt.Character:FindFirstChild("HumanoidRootPart") then 
+        P.Character.HumanoidRootPart.CFrame = tgt.Character.HumanoidRootPart.CFrame 
+    end 
+end)
+
+-- プレイヤーリスト（画像付き & DisplayName対応）
+b("+", top+28, 25, 97, Color3.new(.2,.2,.2), function()
+    sc.Visible = not sc.Visible
+    if sc.Visible then
+        for _,v in pairs(sc:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+        local yO = 0
+        for _, pl in pairs(game.Players:GetPlayers()) do 
+            if pl ~= P then 
+                local pB = b("", yO, 115, 5, Color3.fromRGB(25, 25, 25), function() tgt = pl; tpP.Text = pl.DisplayName:sub(1,8) end, sc)
+                pB.Size = UDim2.new(0, 115, 0, 40)
+                local img = Instance.new("ImageLabel", pB)
+                img.Size = UDim2.new(0, 30, 0, 30); img.Position = UDim2.new(0, 5, 0.5, -15); img.BackgroundTransparency = 1
+                img.Image = game:GetService("Players"):GetUserThumbnailAsync(pl.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+                Instance.new("UICorner", img).CornerRadius = UDim.new(1, 0)
+                local dName = Instance.new("TextLabel", pB)
+                dName.Size = UDim2.new(0, 75, 0, 15); dName.Position = UDim2.new(0, 40, 0, 5); dName.BackgroundTransparency = 1; dName.Text = pl.DisplayName; dName.TextColor3, dName.TextXAlignment = Color3.new(1,1,1), Enum.TextXAlignment.Left; dName.Font, dName.TextSize = Enum.Font.SourceSansBold, 12
+                local uName = Instance.new("TextLabel", pB)
+                uName.Size = UDim2.new(0, 75, 0, 15); uName.Position = UDim2.new(0, 40, 0, 18); uName.BackgroundTransparency = 1; uName.Text = "@" .. pl.Name; uName.TextColor3, uName.TextXAlignment = Color3.fromRGB(180,180,180), Enum.TextXAlignment.Left; uName.Font, uName.TextSize = Enum.Font.SourceSans, 10
+                yO += 45
+            end 
+        end 
+        sc.CanvasSize = UDim2.new(0,0,0,yO)
+    end
+end)
+
+-- スライダー
+local function sld(y, clr, fnc)
+    local sk = Instance.new("TextButton", f); sk.Size, sk.Position, sk.BackgroundColor3, sk.Text = UDim2.new(0,114,0,5), UDim2.new(0,8,0,y), Color3.fromRGB(50,50,50), ""
+    local sd = Instance.new("Frame", sk); sd.Size, sd.Position, sd.BackgroundColor3 = UDim2.new(0,12,0,12), UDim2.new(0,0,0.5,-6), clr
+    Instance.new("UICorner", sd).CornerRadius = UDim.new(1,0)
+    local m = false
+    local function up(i) local x = math.clamp((i.Position.X - sk.AbsolutePosition.X) / sk.AbsoluteSize.X, 0, 1); sd.Position = UDim2.new(x, -6, 0.5, -6); fnc(x) end
+    sk.InputBegan:Connect(function(i) if i.UserInputType.Name:find("1") or i.UserInputType.Name:find("Touch") then m = true; up(i) end end)
+    game:GetService("UserInputService").InputChanged:Connect(function(i) if m then up(i) end end)
+    game:GetService("UserInputService").InputEnded:Connect(function() m = false end)
+end
+sld(top+65, Color3.new(0,1,0), function(x) v = x*150 end)
+sld(top+80, Color3.new(0,0.6,1), function(x) j = 50 + (x*250) end)
+
+local function tglS(t, y, x, w, onF, offF)
+    local state = false
+    local btn; btn = b(t, y, w, x, Color3.fromRGB(80,80,80), function()
+        state = not state
+        btn.BackgroundColor3 = state and Color3.fromRGB(0,150,0) or Color3.fromRGB(80,80,80)
+        if state then onF() else offF() end
+    end)
+end
+
+-- トグルボタン（最新名称）
+tglS("InfJP", top+100, 8, 55, function() conns.Inf = game:GetService("UserInputService").JumpRequest:Connect(function() if P.Character then P.Character.Humanoid:ChangeState(3) end end) end, function() if conns.Inf then conns.Inf:Disconnect(); conns.Inf = nil end end)
+tglS("NoClip", top+100, 67, 55, function() conns.Clip = S.Stepped:Connect(function() if P.Character then for _,p in pairs(P.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end end) end, function() if conns.Clip then conns.Clip:Disconnect(); conns.Clip = nil end; if P.Character then for _,p in pairs(P.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = true end end end end)
+tglS("ESP", top+128, 8, 55, function() _G.TerukumaESP = true end, function() _G.TerukumaESP = false end)
+tglS("AFK", top+128, 67, 55, function() conns.Anti = P.Idled:Connect(function() game:GetService("VirtualUser"):CaptureController(); game:GetService("VirtualUser"):ClickButton2(Vector2.new()) end) end, function() if conns.Anti then conns.Anti:Disconnect(); conns.Anti = nil end end)
+
+b("EXIT", 190, 114, 8, Color3.fromRGB(130, 0, 0), function() P:Kick("退出") end)
+
+-- ESPロジック（最新距離調整済み）
+S.RenderStepped:Connect(function()
+    for _, pl in pairs(game.Players:GetPlayers()) do
+        if pl ~= P and pl.Character and pl.Character:FindFirstChild("Head") then
+            local h = pl.Character:FindFirstChild("TerukumaHighlight") or Instance.new("Highlight", pl.Character)
+            h.Name = "TerukumaHighlight"; h.Enabled = (_G.TerukumaESP == true); h.FillColor, h.OutlineColor = Color3.new(1,0,0), Color3.new(1,1,1)
+            local bGui = pl.Character.Head:FindFirstChild("TerukumaESP")
+            if not bGui then
+                bGui = Instance.new("BillboardGui", pl.Character.Head)
+                bGui.Name = "TerukumaESP"; bGui.Size = UDim2.new(0, 80, 0, 80); bGui.AlwaysOnTop = true; bGui.StudsOffset = Vector3.new(0, 2.5, 0)
+                local img = Instance.new("ImageLabel", bGui)
+                img.Size = UDim2.new(0, 35, 0, 35); img.Position = UDim2.new(0.5, -17.5, 0.5, -10); img.BackgroundTransparency = 1
+                img.Image = game:GetService("Players"):GetUserThumbnailAsync(pl.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+                Instance.new("UICorner", img).CornerRadius = UDim.new(1, 0)
+                local nt = Instance.new("TextLabel", bGui)
+                nt.Name = "NameTag"; nt.Size = UDim2.new(2, 0, 0.4, 0); nt.Position = UDim2.new(-0.5, 0, 0.1, 0); nt.BackgroundTransparency = 1
+                nt.Text = pl.DisplayName; nt.TextColor3, nt.TextStrokeTransparency = Color3.new(1, 1, 1), 0; nt.Font, nt.TextSize = Enum.Font.SourceSansBold, 15
+            end
+            bGui.Enabled = (_G.TerukumaESP == true)
+        end
+    end
+end)
